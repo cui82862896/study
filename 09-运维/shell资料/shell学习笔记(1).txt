@@ -1,0 +1,784 @@
+shell不同其它高级语言，它所处理的问题比较专一：字符，正是因为“字符”才使得很多基础的东西容易让人迷惑。建议先看看以下三篇文档，再自行学习其它的：
+
+一、shell基础十二篇
+
+http://bbs2.chinaunix.net/thread-452942-1-1.html
+二、shell十三问
+ 
+http://bbs2.chinaunix.net/thread-218853-1-1.html
+
+三、bash中文man手册（bash官方文档）
+http://wenku.baidu.com/view/605b590102020740be1e9b7c.html
+
+1、查找当前目录下非隐藏文件
+find ! -name ".*" -maxdepth 1 -type f
+ls -al|grep -v '[[:space:]]\.'
+ls -l
+ls -al|grep -v ' \.'
+2、显示所有目录/非目录
+1. ls -d */
+2. ls -ld */
+3. ls --file-type|grep -v /$|tr '\n' ' ';echo
+--表示后面的参数即使它以“-”开始，都不是命令的选项。
+3、创建文件四种方法：
+1、touch
+2、>file
+3、cat>file
+4、edit
+5、cat>
+4、显示文本的行数
+grep -n  ".*" data.f
+sed = filename
+cat -n[-b] filename
+nl
+5、以下三者精确匹配48，是等价的（在本文档环境下）
+grep '48\>' data.f
+grep 48[^0-9] data.f
+grep "48<tab>" data.f
+6、查询行首不是4、8,以下等价
+grep -v '^[48]' data.f
+grep '^[^48]' data.f
+7、grep扩展模式
+grep -E '219|216' data.f等价于grep '21[96]' data.f
+8、使用国际字符模式或匹配的类名形式
+grep '5[[:upper:]][[:upper:]]' data.f等价于grep '5[A-Z][A-Z]' data.f
+
+9.查看文件控制字符
+sed -n '1,$l' data.f 或者cat -v filename
+10.route/netstat -r/netstat -rn
+11.NR,表示awk开始执行程序后所读取的数据行数.
+FNR,与NR功用类似,不同的是awk每打开一个新文件,FNR便从1重新累计.
+在看一个例子关于NR和FNR的典型应用:
+现在有两个文件格式如下：
+#cat account
+张三|000001
+李四|000002
+#cat cdr
+000001|10
+000001|20
+000002|30
+000002|15
+
+想要得到的结果是将用户名，帐号和金额在同一行打印出来,如下:
+
+张三|000001|10
+张三|000001|20
+李四|000002|30
+李四|000002|15
+
+执行如下代码
+
+#awk -F \| 'NR==FNR{a[$2]=$0;next}{print a[$1]"|"$2}' account cdr
+
+注释:
+
+由NR=FNR为真时,判断当前读入的是第一个文件account,然后使用{a[$2]=$0;next}循环将account文件的每行记录都存入数组a,并使用$2第2个字段作为下标引用.
+
+由NR=FNR为假时,判断当前读入了第二个文件cdr,然后跳过{a[$2]=$0;next},对第二个文件cdr的每一行都无条件执行
+{print a[$1]"|"$2},此时变量$1为第二个文件的第一个字段,与读入第一个文件时,采用第一个文件第二个字段$2为数组下标相同.因此可以在此使用a[$1]引用数组。
+12.cut -d: -f1,2 test.txt |tail -1
+cut [选项]… [文件]…
+
+选项说明：
+
+-b, –bytes=LIST 以字节为单位取出固定字节区间
+
+-c, –characters=LIST 以字符为单位取出固定字符区间
+
+-d, –delimiter=DELIM 指定分隔符来代替默认的TAB分隔符
+
+-f, –fields=LIST 依据 -d 指定的分隔符将一段内容分割成为数段，用 -f 取出第几段的意思
+
+-n with -b: 不分隔多字节字符
+
+–complement 补充选定的字节，字符集或字段
+
+-s, –only-delimited 不打印不包含分隔符的行
+
+–output-delimiter=STRING 使用String 作为输出分隔符，默认的是使用输入分隔符
+
+示例：
+
+cut -d: -f1,5 /etc/passwd 用冒号作为分隔符打印文本列，显示第一和第五列
+13.sort  -t: +1 vegetables
+此命令序列排序 vegetables 文档，对每一行上第一个冒号后的文本进行比较。
++1 告诉 sort 命令忽略第一字段，从第二字段的开始到该行的结束进行比较。-t: 标志告诉 sort 命令冒号分隔字段。
+14.shell脚本函数要调用传值，在函数名后接上$1,$2等。
+15.grep高亮匹配显示：
+export GREP_OPTIONS='--color=auto'
+你可以把 export GREP_OPTIONS='--color=auto' 这条命令添加到 ~/.bash_profile或者.bashrc 的最后，重新登录一下或者source .bashrc就能生效了。
+对于这些配置文件，由于各Linux版本不同，可能找不到，自己新建一个即可。
+其实Ubuntu的.bashrc里面已经有相关的aliases了,只是默认关闭而已.我们可以nano .bashrc找到#alias grep='grep --color=auto'把前面的#出掉即可.
+16.AWK改变域分隔符输出
+echo $PATH | awk 'BEGIN { FS=":" ; OFS="\n" } {for(i=1;i<=NF;i++){print $i;print "\n"}}' |grep 'usr'
+17.统计字符出现次数：
+1）%s,string,string,g  
+2）awk -F NF
+3）如果abc不含换行 可以用 grep -P 来做.
+换行的话 grep 支持-o的话可以用 grep -o 'string' | wc -l
+4）cat test.txt|tr "\n" "#" | awk -F"23" '{print NF-1}'
+5）cat test.txt |tr -c "23" '\n'|grep -w "23"|sed -n $=         ####sed -n $= 就是用来统计最后的结果的
+6）awk '{ count += gsub(/23/, ""); } END { print count; }' $file
+7）cat $f | tr -cs a-zA-Z0-9 '\012' | grep '23' | wc -l
+18.VI编辑技巧
+步骤一： 行内快速跳转
+⑴、“^”跳转：将光标快速跳转到本行的行首字符；
+⑵、“$”跳转：将光标快速跳转到本行的行尾字符；
+⑶、“w”跳转：将光标快速跳转到当前光标所在位置的后一个单词的首字母；
+⑷、“e”跳转：将光标快速跳转到当前光标所在位置的后一个单词的尾字母；
+⑸、“b”跳转：将光标快速跳转到当前光标所在位置的前一个单词的首字母；
+步骤二：进入输入插入模式
+⑴、“i”：在当前光标处进入插入状态；
+⑵、“s”：删除当前光标处字符并进入插入状态；
+⑶、“a”：在当前光标后进入插入状态；
+⑷、“A”：将光标移动到当前行的行末，并进入插入状态；
+⑸、“o”：在当前行的下面插入新行，光标移动到新行的行首，进入插入状态；
+⑹、“O”：在当前行的上面插入新行，光标移动到新行的行首，进入插入状态；
+⑺、 “c”：删除当前光标到所在单词尾部的字符，并进入插入状态；步骤五：文件内行间快速跳转
+(8)、合并两行：如1\n2变成1 2：shift + j
+步骤三：文档内部浏览
+⑴、“1G”：跳转到文件的首行； 
+⑵、“G”：跳转到文件的末尾行； 
+步骤四：删除操作
+⑴、“x”：删除光标处的单个字符；
+⑵、“dd”：删除光标所在行；
+⑶、“dw”：删除当前字符到单词尾（包括空格）的所有字符；
+⑷、“de”：删除当前字符到单词尾（不包括单词尾部的空格）的所有字符；
+⑸、“J”：删除光标所在行行尾的换行符，相当于合并当前行和下一行的内容；
+步骤五：撤消操作“
+⑴、“u”：取消最近一次的操作，并恢复操作结果可以多次使用u命令恢复已进行的多步操作；
+⑵、“U”：取消对当前行进行的所有操作；
+⑶、“Ctrl+r”：对使用u命令撤销的操作进行恢复；
+步骤六：复制与粘贴操作
+⑴、“yy”：复制当前行整行的内容到vi缓冲区；
+⑵、“yw”：复制当前光标到单词尾字符的内容到vi缓冲区；
+⑶、“p”：读取vi缓冲区中的内容，并粘贴到光标当前的位置（不覆盖文件已有的内容）；
+其它：
+（1）vi +/if ip.sh 定位到指定字符窜  vi +10 ip.sh 定位到指定行  vi + filename 直接定位到最后一行
+（2）vi -r/L恢复swap文件
+（3）使用书签
+
+在 vi 中可以在任何地方建立书签，并能快速地定位到建立书签的位置。
+mx - 在当前位置建立书签，使用字符 x (x 可以是任何字符，区分大小写)标识这个书签
+'(单引号)x - 光标移动到书签 x 所在行的第一个字符处
+`(反引号)x - 光标移动到创建书签 x 时光标所在的位置
+（4）跳转指定行：在cmd模式下输入行号即可。 gg shift+g
+19.#,%字符扩展模式basename表达式
+for  i in `ls *.log`
+do
+name=`echo $i |sed  's/\.log$/\.txt/'`
+mv $i $name
+done
+
+20.打印从第一行至第一次出现hello的文本：
+sed -n '1,/hello/p' a.txt
+sed -n ':a;N;/hello/{p;q};ba' 1.txt
+sed  -n '1,/hello/{1h;1!H}; /hello/{g;p;q}' sample.txt
+awk 'NR==1{if(/hello/){print;exit}else{a=$0;next}}{a=a"\n"$0}/hello/{print a;exit}'  file
+awk '!/hello/{var==null?var=$0:var=var"\n"$0;value=0;next}{var=var"\n"$0;value=1;exit}END{if(value==1){print var}}' file
+for i in `cat  文件名`
+do
+if [ "$i" == "hello" ]
+then
+echo $i>>新文件名
+exit
+else
+echo $i>>新文件名
+fi
+done
+21.trap常用信号说明
+HUP(1)
+挂起，通常因终端掉线或用户退出而引发
+
+INT(2)
+中断，通常因按下Ctrl+C组合键而引发
+
+QUIT(3)
+退出，通常因按下Ctrl+\组合键而引发
+
+ABRT(6)
+中止，通常因某些严重的执行错误而引发
+
+ALRM(14)
+报警，通常用来处理超时
+
+TERM(15)
+终止，通常在系统关机时发送
+22.more显示范围文本：more +num -num filename
+23.shell 计算方式
+1、let a=1+5
+2、3+5|bc -l
+3、i=`awk  BEGIN'{printf  "%.2fn", 9/2 }'`
+4、表达式替换 i=$[9 / 2] i=$((9 / 2)) i=`expr 9 / 2`
+24.shell给awk传值的两种方式：-v  或者awk 'BEGIN{print "'$abc'"}'
+25.notepad++"Extended" option - search (and replace) for tabs(\t), newline(\n\r), and a characters by it's value (\o, \x, \b, \d, \t, \n, \r and \\).
+26.查找非图片文件：find -regextype posix-egrep ! -regex ".*\.(jpeg|gif|jpg)"
+find -name "*.txt"|xargs grep abc
+27.awk传多个值的问题：子进程把变量值传给父进程
+[oracle@rac2 tmp]$ cat -n test.sh
+1
+2
+3  a=0;
+4  b=0;
+5  c=$(awk 'BEGIN{print "a=1;b=2"}');
+6  eval $c
+7
+8  echo $a,$b;
+9
+10
+eval可以使shell把变量替换之后的字符串再冲当成命令重新解析一次
+==================
+这个是另一个方法，用管道
+[oracle@rac2 tmp]$ cat -n test.sh
+1
+2
+3  mkfifo t;
+4
+5  a=0;
+6  b=0;
+7  awk 'BEGIN{print "a=1;b=2";print "end";}' >t &
+8
+9  while read c
+10  do
+11          test "$c" == "end"  && break;
+12          eval $c
+13  done <t
+14
+15  echo $a,$b;
+16
+17  rm t
+18
+19
+
+28.shell按列求和
+对符合某些条件的行，按列求和
+[linux@test /tmp]$ cat test
+aaa 123.52
+bbb 125.54
+aaa 123.52
+aaa 123.52
+ccc 126.36
+对文件test中 第一列为aaa的行求和
+[linux@test /tmp]$ awk '/aaa/ {sum += $2};END {print sum}' test
+370.56
+awk 处理文本还是很方便的。
+# cat lastlog
+1008520650 天津 http://www.aibang.com/abc/a.jpg 0.015
+1008522118 天津 http://www.aibang.com/abc/a.jpg 0.015
+1008520646 天津 http://www.aibang.com/abc/a.jpg 0.015
+
+# cat lastlog|grep "天津"|awk '{print$NF}' |awk '{sum += $1};END{print sum}'
+0.094
+我的NF是最后一个字段
+#awk '/天津/{sum += $NF};END {print sum}' lastlog
+
+29.判断奇偶：((3%2))&&echo no||echo yes
+if [ $((`date +%s`%2)) -eq 0 ]; then
+PS1='\[\e[1;31m\]\u@\h:\[\e[m\]\w\$ '
+else
+PS1='\[\e[1;33m\]\u@\h:\[\e[m\]\w\$ '
+fi
+export PS1
+=============
+`[ $? -eq 0 ]||echo \[\e[31m\]`\t#\h#\W> \[\e[0m\]
+30.
+bash（ksh）执行命令的过程：分析命令－变量求值－命令替代（``和$( )）－重定向－通配符展开－确定路径－执行命令；
+31.
+FS (Field separator) 输入域分隔符
+RS (Record separator) 输入行分隔符
+OFS (Output Field Separator) 输出域分隔符
+ORS (Output Record Separator) 输出行分隔符
+32./etc/sysconfig/network-scripts/有配置文件的
+33.seq 19  |sed -n ':a;$P;N;/\n8/!P;2,$D;ba'       删除包含8的前面那行
+34.数组赋值        18:46:55#www#www> echo $a
+11.22.33.44
+18:47:02#www#www> b=($(echo $a|sed 's/^//;s/\./ /g'))
+18:47:05#www#www> echo ${b[0]}
+11
+18:47:07#www#www> echo ${b[1]}
+22
+18:47:10#www#www> echo ${b[2]}
+33
+18:47:11#www#www> echo ${b[3]}
+44
+18:47:13#www#www>
+35.echo "aaa:bbb:ccc:ddd"| (IFS=":" && read a b c d &&  echo $a $b $c $d)
+36.
+第一层：shell传递参数给echo前进行的扩展解析
+
+单引号：shell单引号不进行字符转义
+原文：Enclosing characters in single quotes preserves the literal value of each character within the quotes.
+双引号：不进行字符转义，除了三个字符$, `, \，和开启命令扩展后的!字符
+
+$加单引号（即$''):除了以下字符转义，其他同单引号
+\a     alert (bell)
+\b     backspace
+\e     an escape character
+\f     form feed
+\n     new line
+\r     carriage return
+\t     horizontal tab
+\v     vertical tab
+\\     backslash
+\'     single quote
+\nnn   the eight-bit character whose value is the octal value nnn (one to three digits)
+\xHH   the eight-bit character whose value is the hexadecimal value HH (one or two hex digits)
+\cx    a control-x character
+
+$加双引号($""):实际上与locale设置有关，在C和POSIX下的locale下等同于没带$的双引号
+原文：cause the string to be translated according to the current locale.  If the current locale is C or POSIX, the dollar sign is ignored.
+
+第二层：echo接受参数，处理，显示结果
+不加-e:按字符显示
+加-e:  判断并显示转义（就算你原本打算传进去的就是二个字符，比如'\t')
+37.空值问题
+加x
+加""
+加[[]]
+三种放空值的方法
+cat number.txt|while read num
+do
+res=`zcat no.txt|grep $num`
+if [ "x$res" == "x" ] ; then
+echo "============$num"
+fi
+done
+38.awk、shell变量传值问题
+#!/bin/sh
+today=`date +%m%d`
+echo "$today"
+#sleep 50
+#for i in `rSchedCharging1_c211.log_expErr rMngMsgProcess_c130_20091121000910.log_expErr rDiamMsgRating6_c906.log_expErr rCdrRating1_c801.log_expErr`
+for i in `ls`
+do
+numst=`cat ${i}|awk -v td=$today 'BEGIN{flag=0}{if($1 == td ){print FNR;flag=1;exit}}END{if(flag == 0){print "NO"}}'`
+echo "======$numst"
+if [ $numst == "NO" ] ; then
+continue               
+
+else
+totnum=`wc -l ${i} | awk '{print $1}'`
+echo "------$totnum"
+totnum=`expr ${totnum} - ${numst}`
+totnum=`expr ${totnum} + 1`
+#        tail -${totnum} ${i} > ~hwmoyy/moyy_lijun/
+echo ">>>>>>>>>>>>>${i}"
+tail -10 ${i}
+echo "<<<<<<<<<<<<<${totnum}"
+fi
+done
+39.ORS输出记录分隔符
+#!/bin/sh
+echo "trade time|inorderid"
+cat 2222.txt | awk 'BEGIN{ORS = "";}
+{if($1 == "tradetime"||$1 == "operatorid")
+{if (i%2 == 0){print $2; print "|"}
+else{print $2; print "\n"}
+}i++}'
+#echo $val
+40. 转置一行：paste -sd " " 1.txt
+[root@gdcxserver root]# cat b
+10 a
+9  b
+8  c
+6  e
+[root@gdcxserver root]# awk '{a[$1]=$1;b[$1]=$2}END{for(i in a)print "insert into table("a[i]") values("b[i]");"}' b
+insert into table(6) values(e);
+insert into table(8) values(c);
+insert into table(9) values(b);
+insert into table(10) values(a);
+41.自动分区：非交互式
+# Create partitions
+fdisk $x_dev <<EOF
+o
+n
+p
+1
+
++1024M
+a
+1
+n
+p
+2
+
++2048M
+
+w
+q
+EOF
+或者：echo -n "o\nn\np\n1\n\n+1024M\na\n1\nn\np\n2\n\n+2048M\n\nw" |fdisk $dev
+cat<<EOM | fdisk /dev/hda
+d
+3
+d
+4
+w
+EOM
+echo -e "d\n3\nd\n4\nw"|fdisk /dev/hda
+(echo n;sleep 1;echo p;sleep 1;echo 1)|fdisk
+42.文件按行的长度排序：awk '{print length($0),$0|"sort -n"}END{close("sort -n")}' wcl.txt |awk '{print $2}'
+while read l;do echo -en $l%;echo $l|wc -c;done <a.lst|sort -t% -nrk2|cut -d% -f1 >a.txt
+perl：perl -e '@a=<>;@b=sort {length $a<=>length $b} @a;print @b' length.txt
+43.进程的详细启动时间
+while read time
+do
+date -d $time  +"%F %T"
+done < <(ps -o stime|sed 1d)
+或者是
+ps -o stime|sed 1d|while read time
+do
+date -d $time +"%F %T"
+done
+44.for in循环
+a=(1 2 3 4);b=3;for i in ${a[*]};do if [[ "$i" == "$b" ]];then echo "ok";else echo "no";fi;done
+awk '{a[$4]=$5;b[$4]=$0;if($5>a[$4])a[$4]=$5}END{for (i in a)print b[i]}'
+45.转换多少天以前：date -d"-147day -18hour"    ；昨天： date --date=yesterday +%Y%m%d
+date -d-month +%Y-%m-%d ;rm -r /back/$(date -d-month +%Y-%m-%d)，不过你最好用30天，一个月前的话有些目录就删不掉了，比如1月的29-31号
+46.        JIAXING_DB4 =
+(DESCRIPTION =
+(ADDRESS_LIST =
+(ADDRESS = (PROTOCOL = TCP)(HOST = )(PORT = 1521))
+)
+(CONNECT_DATA =
+(SERVICE_NAME = ics.openet.com.cn)
+)
+)
+
+JIAXING_DB5 =
+(DESCRIPTION =
+(ADDRESS_LIST =
+(ADDRESS = (PROTOCOL = TCP)(HOST = )(PORT = 1521))
+)
+(CONNECT_DATA =
+(SERVICE_NAME = ics)
+)
+)
+
+FOSHAN_DB177 =
+(DESCRIPTION =
+(ADDRESS_LIST =
+(ADDRESS = (PROTOCOL = TCP)(HOST = )(PORT = 1521))
+)
+(CONNECT_DATA =
+(SERVICE_NAME = ics)
+)
+)
+
+怎么用awk 获取标题那个  IAXING_DB4   JIAXING_DB5   FOSHAN_DB177
+awk -F "=" '$0!~/(/&&$0!~/)/{print $1}'
+awk '{if($0 ~ /DESCRIPTION/)print a;a=$0}'
+awk '{if($0 ~ /DESCRIPTION/)print b;a=$0;b=$1}'这样也可以
+awk '{RS="\n    \n";FS="[ (]";print $1}'
+sed -nr ':a;$!{N;ba};s/\n//g;:b;s/\([^()]+\)//;//bb;s/=//g;p'
+47.sed转换大小写
+echo abc|sed 's/./\u&/g'
+echo ABC|sed 's/./\l&/g'
+48.sed模式空间：echo this is my book|sed 's/\(.*is\)\(.*\) \(.*\)/\1\U\2 \E\3/'    #\E是停止\U\L的转换 \l\u只是一次
+echo qwert|sed -r 's/(..)(.)/\u\1\2/ #这样也是只转一个字符
+49.匹配tab键：1 grep -P '\t'; 2 awk '/\t/' 3 ctl+v,tab;
+50.POSIX字符类
+为了在不同国家的字符编码中保持一至，POSIX(The Portable Operating System Interface)增加了特殊的字符类，
+如[:alnum:]是A-Za-z0-9的另一个写法。要把它们放到[]号内才能成为正则表达式，如[A- Za-z0-9]或[[:alnum:]]。
+[:alnum:]
+文字数字字符
+[:alpha:]
+文字字符
+[:digit:]
+数字字符
+[:graph:]
+非空字符（非空格、控制字符）
+[:lower:]
+小写字符
+[:cntrl:]
+控制字符
+[:print:]
+非空字符（包括空格）
+[:punct:]
+标点符号
+[:space:]
+所有空白字符（新行，空格，制表符）
+[:upper:]
+大写字符
+[:xdigit:]
+十六进制数字（0-9，a-f，A-F）
+51.awk另一种匹配
+awk -F: 'match($0,/^root/){print $0}' /etc/passwd 
+awk -F: 'match($0,"^root"){print $0}' /etc/passwd
+52.3G话单统计程序：
+1、awk -F分 '{if($0 !~ /分/)print 1;else{if($0 ~ /秒/)print $1+1; else print $1}}'
+2、cat a|sed 's/分/m/;s/秒/s/'|awk -F[ms] '{if($0 !~ /m/)print 1;else{if($0 ~ /s/)print $1+1; else print $1}}'
+3、sed 's/^/(/;s/分/*60+/;s/秒//;s@+\?$@)/60+59/60@'|bc -l|sed 's/\..*//'
+那个sed其实很简单，就是先换算成秒，然后加上59再除以60，再取整，就行了。
+@是分隔符，$是行末，不是一个整体
+4、awk -F '' '{for(i=1;i<=NF;i++)if($0~/分.*秒/&&$1~/[0-9]/&&$2~ /[0-9]/){print $0"==>"$1$2+1;next};if($0~/分.*秒/&&$1~/[0-9]/&&$2!~ /[0-9]/){print $0"==>"$1+1;next}if($0!~/分/){print $0"==>1";next}if($0!~/秒/&&NF==2){print $0"==>"$1;next}if($0!~/秒/&&NF==3){print $0"==>"$1$2;next}}'
+最终完整版：
+cat daillist | awk -F"\t" '{if(($5 ~ /主叫/) && ($6 !~ /10010/) ){ print $4 } }' | awk -F分 '{
+if($0 !~ /分/) sum = sum + 1;else{if($0 ~ /秒/) sum = sum + $1 + 1; else sum = sum + $1} }
+END{
+print "\n\n\n============================\n\n       主叫通话时长："sum" 分钟\n\n============================" ; last = 200 - sum ;
+print "============================\n\n200分钟包月剩余时长："last" 分钟\n\n============================"
+if(last < 0){
+print "\n=====超额话费：" (-(last * 0.2)) "  元=====\n\n"
+}else{
+print "\n==当前通话还未超过包月时长==\n\n"
+}
+}'
+53.for循环求和：for i in 1 3 4 5 7 8 13 5655 87;do count=$((count+$i));done;echo $count
+sum=0; for i in 1 3 4 5 7 8 13 5655 87 ; do sum=`expr $i + $sum` ; echo "$sum" ; done
+54.shell中等号有空格表示比较，没空格表示赋值
+[ 1 = 1 ]&&echo abc
+[ 1 == 1 ]&&echo abc
+55.自定义颜色显示函数：
+x_log_error ()
+{
+echo -ne "\e[31m";
+echo -n "$1";
+echo -e "\e[0m"
+}
+#!/bin/bash
+red(){
+echo -e "\e[31m$1\e[0m"
+}
+red $1
+56.验证子进程、父进程
+cat /dev/zero | cat >/dev/null
+ps uxf
+57.不打印最后一列：
+awk 'NF--' nf     awk '{NF--}' nf      awk '{NF--}1' nf    awk '$NF=" "' nf    awk '{$NF=null;print $0}'
+awk默认格式 awk 'pattern{action}'没有action会打印所有的。这里$NF=" " 相当于NF为空，其他默认打印
+58.脚本设为自动启动：
+写成脚本放/etc/init.d/下面，然后做符号链接到/etc/rcX.d/下面，或者是rc.local里面。
+init下的还要配置不 ：加个符号链接就行了，不用配置
+启动 -> 读inittab -> inittab默认配置:初始时执行 rc.sysinit -> 接着按运行级别，执行 rc x -> 这个时候才根据链接（等效于chkconfig)的配置，去执行脚本
+59.判断变量为空： [ x$a == "x" ]&&echo "null"    [ -z $(echo -n) ]&&echo null        [ -n $(echo abc) ]&&echo abc
+文件：-s非空    -e/-a存在        字符串：-z长度为0   -n长度非0
+60.echo 0:a231320a|xxd -r|cat -v         xxd看看十六进制
+M-"12
+搞定，字符集问题，用C就行了
+16:09:07#www#www> LANG=C
+16:09:34#www#www> echo 0:a231320a|xxd -r|sed 's/.12/12/'|cat -v
+12
+16:09:35#www#www>  
+
+61.VI 里面传递命令
+广东.江门-june<june_1201@qq.com>  16:13:35
+sun 你的这个命令怎么用？后面直接跟文件名？
+%!cat -v
+求佛(893136)  16:14:02
+它是把0:a231320a转为字符
+
+我为SUN狂.php<walkerxk@gmail.com>  16:14:28
+不用，你用vi打开一个文件，然后使用%!cat -v就是把当前文件内容通过cat -v处理，然后再粘贴到当前的文件中。
+我为SUN狂.php<walkerxk@gmail.com>  16:14:42
+你可以试试%!grep或者是%!sed这些。
+62.管道两边是子shell，所以里面的赋值只对当前shell起作用 ,ksh不存在这种情况。
+函数不会产生子进程问题
+09:31:26#www#~> x=1
+09:31:33#www#~> x=2|x=3
+09:31:36#www#~> echo $x
+1
+09:31:40#www#~> 
+========================
+11:40:27#www#~> a=3
+11:59:37#www#~> echo $a|cat
+3
+11:59:45#www#~> a=4|cat
+11:59:55#www#~> echo $a
+3
+11:59:59#www#~>
+子shell会继承父shell的变量值，父shell不会继承子shell的变量值。
+63.剔除数字：sed 's/[1234567890]//g'   tr -d '[0-9]'
+sed换行：xrzs1986@ubuntu:~$  sed 's/></>\n</2' rr
+<hello><world/>
+<fuck><you/>
+xrzs1986@ubuntu:~$
+echo '<hello><world/><nihao><you/>'|sed 's@/><@/>\n<@'
+echo '<hello><world/><nihao><you/>'|sed 's/\/></\/>\n</g'
+64. ；代表语句的结束，很多时候不加这个，CMD以为没结束会一直提示你输入的。
+65. 读第一行非空内容：sed '/^$/d;/^$/!q'
+66.向脚本传参数需跟在函数名后面，执行的时候也要这样： if [[ "$1" = "1" ]] 这个判断的是函数的$1，不是脚本的$1
+#!/bin/bash
+a1() {
+if [[ "$1" == "1" ]]
+then
+return 3
+else
+return 4
+fi
+}
+a1 $1
+=============================
+-bash-3.00$ ./cc 1
+-bash-3.00$ echo $?
+3
+67.文件a里调用文件b里的函数cc，该怎么写：直接source的话会把定义函数以外的命令也执行的
+source b 
+cc
+前提是b里都是函数，如果b有其他非函数的命令，就会被执行
+b里#!/bin/bash这行可以不要
+68.上个星期日： date -d "last sunday" +%Y-%m-%d
+69.{}与()区别：{}是在当前shell中运行
+我为SUN狂.php<walkerxk@gmail.com>17:05:22
+17:04:55#www#~> a=1;(a=3);echo $a
+1
+17:05:06#www#~> a=1;{ a=3;};echo $a
+3
+17:05:15#www#~>
+
+70.awk、sed去除字符串：
+echo '202.160.183.235 - - [04/Aug/2010:00:00:31 +0800] "GET /?uid-100003130 HTTP/1.0" 200 25932 "-" "Mozilla/5.0 (compatible; Yahoo! Slurp China;  http://misc.yahoo.com.cn/help.html)"'
+|sed -r 's/^([^ ]+) .*"([^"]+)"$/\1 \2/'
+sed -r 's/ .*"([^"]+)"/ \1/'
+sed 's/"$//;s/ .*"//'
+|awk -F'"'  '{split($1,a," ");print a[1],$(NF-1)}'
+awk -F'Mozilla/5.0' '{split($1,m," ");split($2,n,"\042");print m[1],FS,n[1]}'
+71. echo $! 最后一个放入后台的命令
+echo $?  最后一个命令的执行成功与否，0表示成功。或者函数的返回值：return的值
+72. date -d 90day +'%Y%m%d' 日期加上3个月
+73. sed提取网址主域名
+sed 's#.*//\([^/]*\)/.*#\1#'
+原理很简单，就是把//和/之间的内容放到寄存器1，然后输出寄存器1里的内容
+echo "http://www.baidu.com/123/456.html"  |sed 's|http://||;s|/.*||'
+echo "/home/nurks/dir2/core: ELF 32-bit MSB core file SPARC Version 1, from 'cat'"|sed "s/.*'\(.*\)'.*/\1/"
+装\(.*\)  里面的东西显示到\1中
+
+74.清空一个文件：
+vi搜索高亮：set hlsearch
+%!: bash里面执行:命令，并且把返回值作为当前内容。 :可用FALSE或true等返回为空的代替
+%!:>/dev/null
+%!echo -n
+cat /dev/null > test.txt ;>file
+:1,$d
+Gdgg ggdG Gd删除光标后的内容gg跳行首，dd也是删除
+第二行到第四行的man单词改成MAN怎么写:2,4 s/man/MAN/g
+VIM  :e :o :tabnew都是我经常用的工具 :tabnew
+75. 取出日期并且格式化：
+echo "3gwap.abc.cn_20100727.log.tmp-uv1"|sed -r 's/.*([0-9]{4})([0-9]{2})([0-9]{2}).*/\1-\2-\3/'
+echo "3gwap.abc.cn_20100727.log.tmp-uv1" | sed 's/.*\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\).*/\1-\2-\3/'
+76. 提取路径中的字符串：
+echo "/public/test-env/home/bar/dir1/core" |  cut -d/ -f4- 
+sed 's@.*env/@@' 或者 s@.*/home@/home@
+77. find使用逻辑表达式：find ~  -type f -o  -mtime -5 |||||  find -size +100M -size -200M 默认表达式是逻辑与
+78. 从file里面找出01，12，23，34，45，56，67，78，89这样的数字:
+seq -w 99|sed -n '1~11p'
+79. 去掉当中引号：把"""中间的"去掉，然后循环，awk：你用"做分隔符，然后空做输出分隔符，然后修改$1=$1"，$NF="$NF，注意awk里面怎么使用"就行了。
+http://bbs.chinaunix.net/thread-1766899-1-1.html
+xrzs1986@ubuntu:~$ echo '12312"2312"343"545"45"343' | sed -r ':a;s/"([^"]+)"([^"]+)"/"\1\2"/g;ta'
+12312"231234354545"343
+xrzs1986@ubuntu:~$ echo '12312"2312"343"545"45"343'|awk -F\" '{OFS="";NF=NF;$1=$1"\42";$NF="\42"$NF;print $0}'
+12312"231234354545"343
+xrzs1986@ubuntu:~$  echo '12312"2312"343"545"45"343'|awk -F\" '{OFS="";$1=$1"\42";$NF="\42"$NF;print $0}'
+12312"231234354545"343
+xrzs1986@ubuntu:~$  echo '12312"2312"343"545"45"343'|sed ':a;s/^\([^"]*"\)\(.*\)"\(.*"[^"]*\)$/\1\2\3/;ta'
+12312"231234354545"343
+80. 关于shell版本与概念：
+unix一般是csh，debian系是dash，redhat系是bash
+以前是有sh的，不过现在的sh基本都是其他shell的符号链接，反正尽量别用sh就行了
+file /bin/sh看结果，很多sh是bash、dash、csh，不一定的 echo $0
+你在命令行里敲一段命令，都要先经过shell的解析。在解析过程中，分解记号，判断命令，然后采用fork+exec模式执行命令，sh在我的机子上做的是bash的链接。
+./xxx.sh 的运行方式，是unix类系统支持的解释器文件运行方式，即将以#！为起始的第一行做为执行的程序，以这个程序为主体去解释执行剩下的文本
+sh xxx.sh的运行方式，跟运行其他命令一样的，这里sh是程序，xxx.sh是参数，实际执行的命令是sh，通过这个sh程序为主体去解释执行xxx.sh
+81. shell里，return是退函数，exit是退进程，shell里出现exit是退当前进程，父进程无关，不影响父进程，至于父进程要退还是做啥，跟父进程的实现相关，与子进程退出无关
+82. 行首加字符串：     echo "lijun"|sed  's/^/#/'       find NAMED -name "*.zone"|sed -i '/61.152.12.123/s/^/#/'   fgrep -l '61.152.12.123'  *|xargs sed -i 's/^/#/'
+83. 合并文件到另一个头：cat a.txt b.txt >c.txt;mv c.txt a.txt    不停读写：tail -f b.txt >>a.txt
+84. 子进程和父进程的关系及变量的引用：又在纠结父子进程变量问题：不同进程间环境是独立的，要相互访问的话，得做进程间通信
+10:44:20#www#~> . a.sh
+2596
+10:44:25#www#~> echo $a
+3
+10:44:28#www#~> unset a
+10:44:34#www#~> bash a.sh
+23803
+10:44:40#www#~> echo $a
+
+10:44:42#www#~> cat a.sh
+a=3
+echo $$
+10:45:04#www#~>
+85. DOS到UNIX格式转换：sed -i  s/\r$//
+windows下换行是\r\n，linux下换行是\n，所以windows下的直接复制到linux会多一个\r，显示出来就是^M
+dos2unix filename 只是做了 echo $'ittest\r'   vi里面set ff=unix   cat -A
+86. ubuntu和debian是基于deb包的，fedora、centos、rhel是基于rpm的，不一样,这两个是主流，还有一些其他的发行版，是用其他格式的。
+87. vi里面 ctrl+G 查看文件名， pwd 看路径 or cd
+88. sed的多重替换-y：echo "1,1,1"|sed -e 'y/,./.,/'
+89. 双引号在赋值时仅在有空格才和没空格不一样：多行的时候记得加双引号，否则换行变空格
+变量赋值的时候要注意这种情况
+17:55:10#www#~> a=`seq 3`
+17:57:04#www#~> echo "$a"
+1
+2
+3
+17:57:08#www#~> echo $a
+1 2 3
+17:57:15#www#~> 
+90. 解析反斜杠：
+18:11:19#www#~> echo '\123'|(read -r b;echo "$b")
+\123
+18:11:25#www#~>
+加上-r就行了，不解析\ ，双引号一直都不解析，read只是默认解析掉\ ，read默认会把\r解析成回车
+echo '\306\245\372\241\133\116\224\173\343\013\101\326\146\062\264\156' | while read b; do echo -- $b; done
+91. awk中match捕捉匹配：
+echo '[1]
+a;b;c
+a;s;d
+[2]
+q;w;e'|awk '{if( match($0,/\[([^]]*)\]/,a))b=" "a[1]" ";else{sub(/;.;/,b,$0); print}}'
+a 1 c
+a 1 d
+q 2 e
+92. awk数组：
+其实差的不远呵，awk里只有一维数组，再多的维，只不过是形式上而已，
+实际上，a[1,2,3]，下标实际都拼接在一起了，不过拼接的字符是\034
+[oracle@rac2 ~]$ awk 'BEGIN{a[1,23]="aaa";print a[1,23];print a["1\03423"]}'
+aaa
+aaa
+所以差别仅在一个分隔符\034
+[oracle@rac2 ~]$ awk 'BEGIN{a[1,23]="aaa";a[123]="bbb";a[12,3]="ccc";a[1,2,3]="ddd";for(i in a)print i"---"a[i];}'
+123---aaa
+123---ccc
+123---bbb
+123---ddd
+a[n,"start"]    这个一般是在awk匹配时候，保存一些匹配结果用的第n个结果的起始位置，意思是a[n,"start"] a[n]的起始位置
+93. 变量操作值的问题：
+16:18:57#www#~> echo $((a--))
+7
+16:19:06#www#~> echo $a
+6
+16:19:09#www#~> echo $((a-1))
+5
+16:19:17#www#~> echo $a
+6
+16:19:19#www#~>
+用$((a--))，就改变了a的值，我用$((a-1))，就没有改变a的值
+94. 脚本运行环境问题：手动可以、脚本不行：
+脚本里面先. ~username/.bashrc一下 或者 脚本里面env >/tmp/env，然后和自己的env 比较一下。
+95. 脚本里自动访问共享：smbclient -L \\192.168.2.30    
+96. *匹配.的问题：find的*匹配.的，bash的*不匹配.  find ./ -name "*"  find ./ -name ".*"
+find取反与多条件匹配 find . \!  -name ".*" -a -name "d*"
+find -mtime +1 -delete
+97. 提取括号内的值
+? (192.168.0.203) at <incomplete>  on br-lan
+? (192.168.0.5) at 00:24:54:99:35:f4 [ether]  on br-lan
+sed -n '/:.*br-lan/{s/.*(\(.*\)).*/\1/;p}'
+或者awk -F"[)(]" '!/incomplete/{print $2}'
+98. paste按行取出存放为列：行列转置：只对行有效：paste挺有意思的，基本模式就是按行读入，按列排
+seq 4|paste - - -
+固定宽度输出：ls | paste  -d"\t\t\t\n" -s -|column -t
+行列互转：paste -s  <(seq 10) <(seq 30 39)
+paste   <(seq 10) <(seq 30 39)
+paste -s <(seq 9) -d " "
+( sleep 3 ^J echo "sett_dev" ^J sleep 3 ^J echo "sett_dev" ^J ls)|telnet localhost
+^J是\n，^M是\r ，  ()子进程 bash的命令里面;和\n都是分隔命令的 AIX里面；用^J表示：CTRL+V+J，^是缩写，至于你问为什么^J是换行，这个是规定。
+paste -s <(awk '{print $1}' 19.txt) <(awk '{print $2}' 19.txt) <(awk '{print $3}' 19.txt)
+1       4       7
+2       5       8
+3       6       9
+[kjpf43@foxconn04 test]$ cat 19.txt
+1 2 3
+4 5 6
+7 8 9
+99. stty -a：为什么^\不是ctrl+v+\，而是ctrl+\，这个和kill的信号有重叠
+^C就是CTRL+C，只是输入的时候才加v ，输入这个字符+v，执行不用加
+100.export只能最他下级的shell起作用，没法作用到上一级和同级
+就是a调用b，a调用c，如果你b里面export，c里面没用。
